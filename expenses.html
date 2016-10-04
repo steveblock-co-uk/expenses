@@ -1,0 +1,127 @@
+<html>
+  <head>
+    <script type="text/javascript" src="expenses.js"></script>
+    <style type="text/css">
+      body {
+        font-family: sans-serif;
+      }
+      ul {
+        margin: 0px;
+      }
+      div#wrapper {
+        display: flex;
+      }
+      ul {
+        list-style: none;
+        padding: 0px;
+      }
+      div.group li {
+        font-size: x-small;
+        color: #383737;
+        padding-left: 5px;
+      }
+      div#wrapper div.listItem {
+        margin: 5px;
+        padding: 5px;
+        border-radius: 5px;
+      }
+      div.group div.heading {
+        display: flex;
+      }
+      div.heading div {
+        width: 130px;
+        text-align: right;
+      }
+      div.heading div:first-child {
+        width: 100%;
+        text-align: left;
+      }
+      div#ungrouped {
+        width: 35%;
+      }
+      div#rules {
+        width: 30%;
+      }
+      div#categories {
+        width: 35%;
+      }
+      div#ungrouped div.group {
+        background: #b37878;
+      }
+      div#rules div.rule {
+        background: #8fb378;
+      }
+      div#categories div.group {
+        background: #788fb3;
+      }
+      div.transaction {
+        display: flex;
+      }
+      div.transaction div:first-child {
+        width: 80px;
+      }
+      div.transaction div:nth-child(2) {
+        width: 100%;
+      }
+      div.transaction div:nth-child(3) {
+        text-align: right;
+        width: 70px;
+      }
+      div.transaction div:nth-child(4) {
+        text-align: right;
+        width: 70px;
+      }
+      div.rule {
+        display: flex;
+      }
+      div.rule div {
+        width: 50%;
+      }
+      div.rule input {
+        width: 80px;
+      }
+      div.rule a {
+        width: 20px;
+        height: 20px;
+        background-image: url('close-button.png');
+        background-size: 100%;
+        cursor: pointer;
+        background-repeat: no-repeat;
+      }
+      div.addRule a {
+        display: block;
+        background-image: url('plus.png');
+      }
+      div.listView > a {
+        font-size: x-small;
+        padding-left: 10px;
+      }
+      div.listView > ul {
+        overflow: hidden;
+      }
+      div.listView > ul.hidden {
+        height: 0px;
+      }
+      div.title {
+        font-weight: bold;
+        display: flex;
+        padding: 10px;
+      }
+      div.title div:nth-child(1) {
+        width: 100%;
+      }
+      div.title div:nth-child(2) {
+        width: 130px;
+        text-align: right;
+      }
+    </style>
+  </head>
+  <body onload="onload()">
+    <input type="file" id="input" onchange="handleFiles(this.files)">
+    <div id="wrapper">
+      <div id="ungrouped"></div>
+      <div id="rules"></div>
+      <div id="categories"></div>
+    </div>
+  </body>
+</html>
