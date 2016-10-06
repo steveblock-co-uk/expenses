@@ -384,7 +384,7 @@ Rule.prototype.getCategory = function() {
 
 // TODO: Improve this
 Rule.prototype.getHash = function() {
-  return this.regex_ + '|' + this.amount_ + '|' + this.category_;
+  return this.regex_ + '|' + this.amount_;
 }
 
 function Rules() {
