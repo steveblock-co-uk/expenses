@@ -1,0 +1,126 @@
+<html>
+  <head>
+    <script type="text/javascript">
+      function Transaction(date, description, amount) {
+        this.date = date;
+        this.description = description;
+        this.amount = amount;
+      }
+
+      function Trip(date) {
+        this.date = date;
+        this.amount = 0;
+      }
+
+      function go(files) {
+        loadTransactions(files, function(transactions) {
+          var uses = filterOutLoads(transactions).sort(function(a, b) {
+            return a.date - b.date;
+          });
+          var trips = getTrips(uses);
+          var totalCost = trips.reduce(function(a, b) {
+            return a + b.amount;
+          }, 0);
+          var minTimeSpanTrips = getMinTimeSpanTrips(trips, 32);
+          print(totalCost, minTimeSpanTrips.start, minTimeSpanTrips.end);
+        });
+      }
+
+      function loadTransactions(files, f) {
+        var fileReader = new FileReader();
+        fileReader.readAsText(files[0]);
+        fileReader.onload = function(event) {
+          var lines = event.target.result.split('\n');
+          var transactions = [];
+          for (var i in lines) {
+            if (lines[i] === '' || lines[i].startsWith('DateTime')) continue;
+            var fields = lines[i].split(',');
+            transactions.push(new Transaction(
+                new Date(fields[0]),
+                fields[2],
+                fields[4]));
+          }
+          f(transactions);
+        };
+      }
+
+      function filterOutLoads(transactions) {
+        return transactions.filter(function(transaction) {
+          return transaction.description.indexOf('Loaded') === -1 && transaction.description.indexOf('Purchase') === -1;
+        });
+      }
+
+      function getTrips(transactions) {
+        var trips = [];
+        var trip;
+        for (var i = 0; i < transactions.length; ++i) {
+          var transaction = transactions[i];
+          if (transaction.amount < 0) {
+            if (trip !== undefined) {
+              trips.push(trip);
+            }
+            trip = new Trip(transaction.date);
+          }
+          trip.amount -= transaction.amount;
+        }
+        trips.push(trip);
+        return trips;
+      }
+
+      function getMinTimeSpanTrips(trips, numTrips) {
+        var numSteps = numTrips - 1;
+        var minTimeSpan = Infinity;
+        var minTimeSpanIndex;
+        for (var i = 0; i < trips.length - numSteps; ++i) {
+          var timeSpan = trips[i + numSteps].date - trips[i].date;
+          if (timeSpan < minTimeSpan) {
+            minTimeSpan = timeSpan;
+            minTimeSpanIndex = i;
+          }
+        }
+        return {
+          start: trips[minTimeSpanIndex],
+          end: trips[minTimeSpanIndex + numSteps]
+        };
+      }
+
+      function print(totalCost, startTrip, endTrip) {
+        console.log(startTrip);
+        console.log(endTrip);
+        var div = document.getElementById('result');
+        div.appendChild(document.createTextNode('Total cost: ' + totalCost));
+        div.appendChild(document.createElement('br'));
+        div.appendChild(document.createTextNode('Minimum time span: ' + toDaysHoursMinutesSeconds(endTrip.date - startTrip.date)));
+      }
+
+      function toDaysHoursMinutesSeconds(millis) {
+        // TODO: DST!
+        var units = toUnits(millis, [1000, 60, 60, 24]);
+        return units[4] + ' days ' + toFixedWidth(units[3], 2) + ':' + toFixedWidth(units[2], 2) + ':' + toFixedWidth(units[1], 2);
+      }
+
+      function toUnits(x, multipliers) {
+        var results = multipliers.map(function(multiplier) {
+          var result = x % multiplier;
+          x = Math.floor(x / multiplier);
+          return result;
+        });
+        results.push(x);
+        return results;
+      }
+
+      function toFixedWidth(x, width) {
+        var string = '' + x;
+        while (string.length < width) {
+          string = '0' + string;
+        }
+        return string;
+      }
+
+    </script>
+  </head>
+  <body>
+    <input type="file" id="input" onchange="go(this.files)">
+    <div id="result"></div>
+  </body>
+</html>
