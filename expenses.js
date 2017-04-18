@@ -1,6 +1,7 @@
 // persist rules in URL
 // quick-create rule from group
 // handle conflicting rules
+// Special-case 'ignored' category
 
 var MIN_SUBSTRING_LENGTH = 8;
 
@@ -44,8 +45,6 @@ function filter(x) {
     /\bPRE-AUTH PYMT\b/g,
     /\bSTANDING INST\b/g,
     /\bCHEQUE\b/g,
-    /\bINTERBANK TRF\b/g,
-    /\bHSBC MASTERCARD\b/g,
     /\bVANCOUVER\b/g,
     /\bCHQ\b/g,
     // Long numbers and codes which create false positive matches, so exclude them.
@@ -498,19 +497,15 @@ function onload() {
   document.getElementById('rules').appendChild(ruleList);
 
   new RulesView(rules, ruleList);
-rules.add('Steve monthly jnt float', null, 'In');
-rules.add('Steph.*Joint', null, 'In');
-rules.add('STEPH 2 JOINT', null, 'In');
+rules.add('Steve monthly jnt float', null, 'Ignored');
+rules.add('Steph.*Joint', null, 'Ignored');
+rules.add('STEPH 2 JOINT', null, 'Ignored');
+rules.add('HSBC MASTERCARD', null, 'Ignored');
 
-rules.add('INTERBANK TRF', 25000, 'Steph\'s Mum');
-rules.add('FR MS ANNE C WATERMAN', null, 'Steph\'s Mum');
-
-rules.add('THE HOME DEPOT', null, 'DIY');
-rules.add('CANADIAN TIRE', null, 'DIY');
-rules.add('RONA HOME', null, 'DIY');
-rules.add('Plumber', null, 'DIY');
-rules.add('Feeny Power', null, 'DIY');
-rules.add('ANDREW SHERET LIMITED', null, 'DIY');
+rules.add('IKEA', null, 'Home Improvement');
+rules.add('THE HOME DEPOT', null, 'Home Improvement');
+rules.add('CANADIAN TIRE', null, 'Home Improvement');
+rules.add('RONA HOME', null, 'Home Improvement');
 
 rules.add('MARKETPLACE +IGA', null, 'Food');
 rules.add('REAL CDN\.? SUPERSTORE', null, 'Food');
@@ -518,14 +513,10 @@ rules.add('CHOICES YALETOWN', null, 'Food');
 rules.add('SAVE ON FOODS', null, 'Food');
 rules.add('FARM MARKET', null, 'Food');
 rules.add('URBAN FARE', null, 'Food');
-rules.add('HSBC MASTERCARD. Superstore', null, 'Food');
 rules.add('FOOD MAR', null, 'Food');
 rules.add('THRIFTY FOODS', null, 'Food');
 rules.add('GROCERY', null, 'Food');
 rules.add('SAFEWAY', null, 'Food');
-
-rules.add('ABM CASH W/D', null, 'Cash');
-rules.add('ATM REBATE', null, 'Cash');
 
 rules.add('CHEVRON', null, 'Gas');
 rules.add('HUSKY', null, 'Gas');
@@ -534,31 +525,16 @@ rules.add('GAS BAR', null, 'Gas');
 
 rules.add('CHEQUE', -1425.00, 'Sweet Peas');
 rules.add('CHEQUE', -1045.00, 'Sweet Peas');
-rules.add('KIDS &\. COMPANY', null, 'Kids & Company');
-rules.add('MAHNAZ', null, 'Mahnaz');
-
-rules.add('CHEQUE', -2400.00, 'Rolston Rent');
-rules.add('CHQ FR NEIL CHANDHO', 1200.00, 'Rolston Rent');
-
-rules.add('COMPASS VENDING', null, 'Compass');
-rules.add('Compass', null, 'Compass');
 
 rules.add('LOAN PAYMENT', null, 'Mortgage');
-rules.add('EMPOYEE HOUSING ASSI', null, 'Mortgage Assistance');
-rules.add('VIRGIN MOB', null, 'Phone');
-rules.add('Internet( set up)?\.', null, 'Internet');
-rules.add('FortisBC Energy', null, 'Gas');
-rules.add('B\.?C\.? HYDRO', null, 'Electricity');
-rules.add('PAYPAL', -7.99, 'Netflix');
+rules.add('EMPOYEE HOUSING ASSI', null, 'Mortgage');
 
-rules.add('IKEA', null, 'Furniture');
-rules.add('David Gilman and Joanne', -805.00, 'Furniture');
+rules.add('VIRGIN MOB', null, 'Utilities');
+rules.add('FortisBC Energy', null, 'Utilities');
+rules.add('B\.?C\.? HYDRO', null, 'Utilities');
+rules.add('PAYPAL', -7.99, 'Utilities');
 
-rules.add('NORTH VAN TAX', null, 'Property Tax');
-rules.add('CRA TAX OWING', null, 'CRA');
 rules.add('MFDAC:6180418 PURPAH', null, 'RESP');
-rules.add('House insurance', null, 'House Insurace');
-rules.add('Subaru insurance', null, 'Car Insurance');
 }
 
 function AddRuleView(container, rules) {
