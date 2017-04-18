@@ -68,8 +68,8 @@ function trimQuotes(x) {
   return x.replace(/\"/g, '');
 }
 
-function absoluteTotalOfAbsoluteTotals(groups) {
-  return groups.reduce(function(x, y) { return x + Math.abs(y.getAbsoluteTotal()); }, 0);
+function absoluteTotalOfTotals(groups) {
+  return groups.reduce(function(x, y) { return x + Math.abs(y.getTotal()); }, 0);
 }
 
 var grouper = new Grouper(function(transaction) {
@@ -82,7 +82,7 @@ var grouper = new Grouper(function(transaction) {
 
   var heading = createElement('div', 'title');
   heading.appendChild(createDiv('Not Categorised'));
-  heading.appendChild(createDiv(formatAmount(absoluteTotalOfAbsoluteTotals(groups))));
+  heading.appendChild(createDiv(formatAmount(absoluteTotalOfTotals(groups))));
   ungrouped.appendChild(heading);
 
   new ListView(groups, GroupView, ungrouped, false, false);
@@ -96,7 +96,7 @@ var matcher = new Matcher(function(matches, ungroupedTransactions) {
 
   var heading = createElement('div', 'title');
   heading.appendChild(createDiv('Categorised'));
-  heading.appendChild(createDiv(formatAmount(absoluteTotalOfAbsoluteTotals(matches))));
+  heading.appendChild(createDiv(formatAmount(absoluteTotalOfTotals(matches))));
   categories.appendChild(heading);
 
   new ListView(matches, GroupView, categories, false, true);
@@ -304,8 +304,8 @@ Group.prototype.getTotal = function() {
   return this.credit_ - this.debit_;
 };
 
-Group.prototype.getAbsoluteTotal = function() {
-  return this.credit_ + this.debit_;
+Group.prototype.getTotal = function() {
+  return this.credit_ - this.debit_;
 };
 
 // onchange is called with groups and ungrouped transactions
