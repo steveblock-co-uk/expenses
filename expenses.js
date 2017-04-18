@@ -1,4 +1,6 @@
-// persist rules in URL
+// Sample URL: file:///Users/blosteve/Desktop/Personal/Code/expenses/expenses.html#Steve%20monthly%20jnt%20float%7C%7CIgnored%23Steph.*Joint%7C%7CIgnored%23STEPH%202%20JOINT%7C%7CIgnored%23HSBC%20MASTERCARD%7C%7CIgnored%23IKEA%7C%7CHome%20improvement%23THE%20HOME%20DEPOT%7C%7CHome%20improvement%23CANADIAN%20TIRE%7C%7CHome%20improvement%23RONA%20HOME%7C%7CHome%20improvement%23MARKETPLACE%20%2BIGA%7C%7CFood%23REAL%20CDN.%3F%20SUPERSTORE%7C%7CFood%23CHOICES%20YALETOWN%7C%7CFood%23SAVE%20ON%20FOODS%7C%7CFood%23FARM%20MARKET%7C%7CFood%23URBAN%20FARE%7C%7CFood%23FOOD%20MAR%7C%7CFood%23THRIFTY%20FOODS%7C%7CFood%23GROCERY%7C%7CFood%23SAFEWAY%7C%7CFood%23CHEVRON%7C%7CGas%23HUSKY%7C%7CGas%23PETRO-CANADA%7C%7CGas%23GAS%20BAR%7C%7CGas%23CHEQUE%7C-1425%7CSweet%20Peas%23CHEQUE%7C-1045%7CSweet%20Peas%23LOAN%20PAYMENT%7C%7CMortgage%23EMPOYEE%20HOUSING%20ASSI%7C%7CMortgage%23VIRGIN%20MOB%7C%7CUtilities%23FortisBC%20Energy%7C%7CUtilities%23B.%3FC.%3F%20HYDRO%7C%7CUtilities%23PAYPAL%7C-7.99%7CUtilities%23MFDAC%3A6180418%20PURPAH%7C%7CRESP%23NORTH%20VAN%20TAX%7C%7CProperty%20tax%23CHQ%20FR%20NEIL%20CHANDHO.%20K.%7C%7CIgnored%23David%20Gilman%20and%20Joanne%7C%7CHouse%20one-off%23CHQ%20FM%20MAHNAZ.%20ESFAHANI%7C%7CIgnored%23Feeny%20Power%7C%7CHouse%20one-off%23COMPASS%20VENDING%7C%7CCompass%23Steph's%20CC%7C%7CIgnored%23MICHAELS%7C%7CHome%20improvement
+
+// TODO
 // quick-create rule from group
 // handle conflicting rules
 // Special-case 'ignored' category
@@ -86,8 +88,6 @@ var grouper = new Grouper(function(transaction) {
 
   new ListView(groups, GroupView, ungrouped, false, false);
 });
-
-var rules = new Rules();
 
 var matcher = new Matcher(function(matches, ungroupedTransactions) {
   var categories = document.getElementById('categories');
@@ -354,6 +354,9 @@ Matcher.prototype.match = function(rules) {
 }
 
 function Rule(regex, amount, category) {
+  console.assert(regex === null || (typeof regex === 'string' && regex !== '' && regex.indexOf(Rule.DELIM) === -1));
+  console.assert(amount === null || typeof amount === 'number');
+  console.assert(typeof category === 'string' && category !== '' && category.indexOf(Rule.DELIM) === -1);
   this.regex_ = regex;
   this.amount_ = amount;
   this.category_ = category;
@@ -381,25 +384,47 @@ Rule.prototype.getCategory = function() {
   return this.category_;
 }
 
-// TODO: Improve this
-Rule.prototype.getHash = function() {
-  return this.regex_ + '|' + this.amount_;
+Rule.DELIM = '|';
+
+function emptyIfNull(x) {
+  return x === null ? '' : x;
+}
+
+Rule.prototype.serialize = function() {
+  return emptyIfNull(this.regex_) + Rule.DELIM + emptyIfNull(this.amount_) + Rule.DELIM + this.category_;
+}
+
+function nullIfEmpty(x) {
+  console.assert(x !== null);
+  return x === '' ? null : x
+}
+
+Rule.deserialize = function(serializedString) {
+  var components = serializedString.split(Rule.DELIM);
+  var regex = nullIfEmpty(components[0]);
+  var amount= nullIfEmpty(components[1]);
+  amount = amount === null ? null : parseFloat(amount);
+  var category = components[2];
+  return new Rule(regex, amount, category);
 }
 
 function Rules() {
   this.map_ = {};
 }
 
-Rules.prototype.add = function(regex, amount, category) {
-  var rule = new Rule(regex, amount, category);
-  this.map_[rule.getHash()] = rule;
+Rules.ruleInputHash = function(rule) {
+  return rule.getRegex() + '|' + rule.getAmount();
+}
+
+Rules.prototype.add = function(rule) {
+  this.map_[Rules.ruleInputHash(rule)] = rule;
   if (this.onchange_ !== undefined) {
     this.onchange_();
   }
 }
 
 Rules.prototype.remove = function(rule) {
-  delete this.map_[rule.getHash()];
+  delete this.map_[Rules.ruleInputHash(rule)];
   if (this.onchange_ !== undefined) {
     this.onchange_();
   }
@@ -475,12 +500,18 @@ function RuleView(rule, container, rules) {
 function RulesView(rules, container) {
   this.rules_ = rules;
   this.container_ = container;
-  rules.setOnchange(function() {
-   this.container_.innerHTML = '';
-   new ListView(this.rules_.get().reverse(), RuleView, this.container_, false, rules);
-   matcher.match(rules.get());
-  }.bind(this));
+  this.rules_.setOnchange(this.update.bind(this));
+  this.update();
 }
+
+RulesView.prototype.update = function() {
+ this.container_.innerHTML = '';
+ new ListView(this.rules_.get().reverse(), RuleView, this.container_, false, rules);
+ matcher.match(rules.get());
+ updateHash();
+};
+
+var rules = new Rules();
 
 function onload() {
 
@@ -496,45 +527,20 @@ function onload() {
   ruleList.id = 'ruleList';
   document.getElementById('rules').appendChild(ruleList);
 
+  if (location.hash !== '') {
+    decodeURIComponent(location.hash.substring(1)).split('#').map(Rule.deserialize).forEach(function(rule) {
+      rules.add(rule);
+    });
+  }
   new RulesView(rules, ruleList);
-rules.add('Steve monthly jnt float', null, 'Ignored');
-rules.add('Steph.*Joint', null, 'Ignored');
-rules.add('STEPH 2 JOINT', null, 'Ignored');
-rules.add('HSBC MASTERCARD', null, 'Ignored');
+}
 
-rules.add('IKEA', null, 'Home Improvement');
-rules.add('THE HOME DEPOT', null, 'Home Improvement');
-rules.add('CANADIAN TIRE', null, 'Home Improvement');
-rules.add('RONA HOME', null, 'Home Improvement');
-
-rules.add('MARKETPLACE +IGA', null, 'Food');
-rules.add('REAL CDN\.? SUPERSTORE', null, 'Food');
-rules.add('CHOICES YALETOWN', null, 'Food');
-rules.add('SAVE ON FOODS', null, 'Food');
-rules.add('FARM MARKET', null, 'Food');
-rules.add('URBAN FARE', null, 'Food');
-rules.add('FOOD MAR', null, 'Food');
-rules.add('THRIFTY FOODS', null, 'Food');
-rules.add('GROCERY', null, 'Food');
-rules.add('SAFEWAY', null, 'Food');
-
-rules.add('CHEVRON', null, 'Gas');
-rules.add('HUSKY', null, 'Gas');
-rules.add('PETRO-CANADA', null, 'Gas');
-rules.add('GAS BAR', null, 'Gas');
-
-rules.add('CHEQUE', -1425.00, 'Sweet Peas');
-rules.add('CHEQUE', -1045.00, 'Sweet Peas');
-
-rules.add('LOAN PAYMENT', null, 'Mortgage');
-rules.add('EMPOYEE HOUSING ASSI', null, 'Mortgage');
-
-rules.add('VIRGIN MOB', null, 'Utilities');
-rules.add('FortisBC Energy', null, 'Utilities');
-rules.add('B\.?C\.? HYDRO', null, 'Utilities');
-rules.add('PAYPAL', -7.99, 'Utilities');
-
-rules.add('MFDAC:6180418 PURPAH', null, 'RESP');
+function updateHash() {
+  var rulesHash = rules.get().map(function(rule) {
+    console.assert(rule.serialize().indexOf('#') === -1);
+    return rule.serialize();
+  }).join('#');
+  location.hash = encodeURIComponent(rulesHash);
 }
 
 function AddRuleView(container, rules) {
@@ -560,10 +566,10 @@ function AddRuleView(container, rules) {
   amountInput.addEventListener('change', enable);
   categoryInput.addEventListener('change', enable);
   add.addEventListener('click', function() {
-    rules.add(
+    rules.add(new Rule(
         regexInput.value === '' ? null : regexInput.value,
         amountInput.value === '' ? null : parseFloat(amountInput.value),
-        categoryInput.value);
+        categoryInput.value));
     regexInput.value = '';
     amountInput.value = '';
     categoryInput.value = '';
