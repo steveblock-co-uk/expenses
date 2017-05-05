@@ -123,6 +123,35 @@ function ListView(items, viewClass, container, isCollapsible, additionalArgs) {
   container.appendChild(outer);
 }
 
+function FileArray(onchange) {
+  this.files_ = [];
+  this.onchange_ = onchange;
+}
+
+FileArray.prototype.getOnchange = function() {
+  return this.onchange_;
+};
+
+FileArray.prototype.setOnchange = function(onchange) {
+  this.onchange_ = onchange;
+};
+
+FileArray.prototype.add = function(files) {
+  files.forEach(function(file) {
+    this.files_.push(file);
+  }.bind(this));
+  if (this.onchange_) {
+    this.onchange_(this.files_);
+  }
+};
+
+FileArray.prototype.remove = function(index) {
+  this.files_.splice(index, 1);
+  if (this.onchange_) {
+    this.onchange_(this.files_);
+  }
+};
+
 function parseFloatStrict(x) {
   var float = x * 1;
   if (float === NaN) {
@@ -131,27 +160,38 @@ function parseFloatStrict(x) {
   return float;
 }
 
-function handleFiles(files) {
-  var fileReader = new FileReader();
-  fileReader.readAsText(files[0]);
-  fileReader.onload = function(event) {
-    var lines = event.target.result.split('\n');
-    var transactions = [];
-    for (var i in lines) {
-      if (lines[i] === '') continue;
-      // Remove quotes and commas from quoted numeric values, then split on commas.
-      var fields = lines[i].replace(/"(-?[0-9]{1,3})(,([0-9]{3}))*(\.[0-9]{2})"/g,'$1$3$4').split(',');
-      var amount = parseFloatStrict(fields[2]);
-      transactions.push(new Transaction(
-          fields[0],
-          fields[1].trim(),
-          amount > 0 ? amount : 0,
-          amount < 0 ? -amount : 0));
-    }
+var fileArray = new FileArray(function(files) {
+  var transactions = [];
+  var numFilesRemaining = files.length;
+  if (numFilesRemaining === 0) {
     matcher.setTransactions(transactions);
     matcher.match(rules.get());
+    return;
   }
-}
+  files.forEach(function(file) {
+    var fileReader = new FileReader();
+    fileReader.onload = function(event) {
+      var lines = event.target.result.split('\n');
+      for (var i in lines) {
+        if (lines[i] === '') continue;
+        // Remove quotes and commas from quoted numeric values, then split on commas.
+        var fields = lines[i].replace(/"(-?[0-9]{1,3})(,([0-9]{3}))*(\.[0-9]{2})"/g,'$1$3$4').split(',');
+        var amount = parseFloatStrict(fields[2]);
+        transactions.push(new Transaction(
+            fields[0],
+            fields[1].trim(),
+            amount > 0 ? amount : 0,
+            amount < 0 ? -amount : 0));
+      }
+      if (--numFilesRemaining === 0) {
+        matcher.setTransactions(transactions);
+        matcher.match(rules.get());
+      }
+    };
+    fileReader.readAsText(file);
+   });
+});
+
 
 function getValues(object) {
   return Object.keys(object).map(function(key) { return object[key]; });
@@ -468,6 +508,70 @@ function formatAmount(x) {
   }).join('');
 }
 
+function FileArrayView(fileArray, container) {
+  this.fileArray_ = fileArray;
+  var originalOnchange = fileArray.getOnchange();
+  this.fileArray_.setOnchange(function(files) {
+    this.onchange_(files);
+    if (originalOnchange) {
+      originalOnchange(files);
+    }
+  }.bind(this));
+  var input = createElement('input');
+  input.style = 'display: none';
+  input.type = 'file';
+  input.multiple = true;
+  input.onchange = function() {
+    // The this object is the input element.
+    var files = [];
+    for (var i = 0; i < this.files.length; ++i) {
+      files.push(this.files[i]);
+    }
+    fileArray.add(files);
+  };
+  container.appendChild(createSpan('Input Files'));
+  container.appendChild(input);
+  var button = document.createElement('button');
+  button.appendChild(createSpan('Browse'));
+  button.onclick = function() { input.click(); };
+  container.appendChild(button);
+  this.summary_ = document.createElement('div');
+  container.appendChild(this.summary_);
+  this.more_ = document.createElement('a');
+  container.appendChild(this.more_);
+  this.listContainer_ = createElement('ol');
+  container.appendChild(this.listContainer_);
+  this.show_();
+  this.onchange_([]);
+}
+
+FileArrayView.prototype.hide_ = function() {
+  this.listContainer_.style = 'overflow: hidden; height: 0px';
+  this.more_.style = 'transform: rotate(180deg)';
+  this.more_.onclick = this.show_.bind(this);
+};
+
+FileArrayView.prototype.show_ = function() {
+  this.listContainer_.style = 'height: auto';
+  this.more_.style = 'transform: rotate(0deg)';
+  this.more_.onclick = this.hide_.bind(this);
+};
+
+FileArrayView.prototype.onchange_ = function(files) {
+  this.summary_.textContent = files.length + ' files';
+  this.listContainer_.innerHTML = '';
+  files.forEach(function(file, index) {
+    var div = createElement('li', 'file');
+    var remove = createElement('a');
+    remove.addEventListener('click', function() {
+      this.fileArray_.remove(index);
+    }.bind(this));
+    div.appendChild(remove);
+    div.appendChild(createSpan(file.name));
+    this.listContainer_.appendChild(div);
+  }.bind(this));
+}
+
 function TransactionView(item, container) {
   var div = createElement('div', 'transaction');
   div.appendChild(createDiv(item.getDate()));
@@ -534,6 +638,8 @@ function onload() {
     });
   }
   new RulesView(rules, ruleList);
+
+  new FileArrayView(fileArray, document.getElementById('file_list'));
 }
 
 function updateHash() {
