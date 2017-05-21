@@ -65,10 +65,6 @@ function filter(x) {
   return x.replace(/\ +/g, ' ').trim();
 }
 
-function trimQuotes(x) {
-  return x.replace(/\"/g, '');
-}
-
 function absoluteTotalOfTotals(groups) {
   return groups.reduce(function(x, y) { return x + Math.abs(y.getTotal()); }, 0);
 }
@@ -127,6 +123,14 @@ function ListView(items, viewClass, container, isCollapsible, additionalArgs) {
   container.appendChild(outer);
 }
 
+function parseFloatStrict(x) {
+  var float = x * 1;
+  if (float === NaN) {
+    throw (x + ' is not a float');
+  }
+  return float;
+}
+
 function handleFiles(files) {
   var fileReader = new FileReader();
   fileReader.readAsText(files[0]);
@@ -135,13 +139,14 @@ function handleFiles(files) {
     var transactions = [];
     for (var i in lines) {
       if (lines[i] === '') continue;
-      // Remove quoted commas then split on commas
-      var fields = lines[i].replace(/"([0-9]{1,3})(,([0-9]{3}))(\.[0-9]{2})"/g,'"$1$3$4"').split(',');
+      // Remove quotes and commas from quoted numeric values, then split on commas.
+      var fields = lines[i].replace(/"(-?[0-9]{1,3})(,([0-9]{3}))*(\.[0-9]{2})"/g,'$1$3$4').split(',');
+      var amount = parseFloatStrict(fields[2]);
       transactions.push(new Transaction(
           fields[0],
-          fields[1],
-          fields[3] === '' ? 0 : parseFloat(trimQuotes(fields[3])),
-          fields[2] === '' ? 0 : parseFloat(trimQuotes(fields[2]))));
+          fields[1].trim(),
+          amount > 0 ? amount : 0,
+          amount < 0 ? -amount : 0));
     }
     matcher.setTransactions(transactions);
     matcher.match(rules.get());
@@ -297,10 +302,6 @@ Group.prototype.getTransactions = function() {
 
 Group.prototype.getCredit = function() {
   return this.credit_;
-};
-
-Group.prototype.getTotal = function() {
-  return this.credit_ - this.debit_;
 };
 
 Group.prototype.getTotal = function() {
