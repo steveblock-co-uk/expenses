@@ -2,7 +2,6 @@
 
 // TODO
 // quick-create rule from group
-// Special-case 'ignored' category
 
 var MIN_SUBSTRING_LENGTH = 8;
 
@@ -381,10 +380,13 @@ Matcher.prototype.match = function(rules) {
       return;
     }
     var category = rule.getCategory();
+    if (category === '') {
+      return;
+    }
     if (categoryToGroup[category] === undefined) {
       categoryToGroup[category] = new Group(category);
     }
-    categoryToGroup[rule.getCategory()].addTransaction(transaction);
+    categoryToGroup[category].addTransaction(transaction);
   });
 
   var matches = Object.keys(categoryToGroup).map(function(category) {
@@ -398,7 +400,7 @@ Matcher.prototype.match = function(rules) {
 function Rule(regex, amount, category) {
   console.assert(regex === null || (typeof regex === 'string' && regex !== '' && regex.indexOf(Rule.DELIM) === -1));
   console.assert(amount === null || typeof amount === 'number');
-  console.assert(typeof category === 'string' && category !== '' && category.indexOf(Rule.DELIM) === -1);
+  console.assert(typeof category === 'string' && category.indexOf(Rule.DELIM) === -1);
   this.regex_ = regex;
   this.amount_ = amount;
   this.category_ = category;
