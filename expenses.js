@@ -2,7 +2,6 @@
 
 // TODO
 // quick-create rule from group
-// handle conflicting rules
 // Special-case 'ignored' category
 
 var MIN_SUBSTRING_LENGTH = 8;
@@ -365,7 +364,8 @@ Matcher.prototype.match = function(rules) {
       if (!rule.matches(transaction)) {
         return;
       }
-      if (transactionIdToRule[transactionId] !== undefined) {
+      var existingRule = transactionIdToRule[transactionId];
+      if (existingRule !== undefined && existingRule.getCategory() !== rule.getCategory()) {
         throw ("Multiple matches: " + transaction.getDescription() + " : " + rule.toString() + " conflicts with " + transactionIdToRule[transactionId].toString());
       }
       transactionIdToRule[transactionId] = rule;
@@ -380,8 +380,9 @@ Matcher.prototype.match = function(rules) {
       unmatchedTransactions.push(transaction);
       return;
     }
-    if (categoryToGroup[rule.getCategory()] === undefined) {
-      categoryToGroup[rule.getCategory()] = new Group(rule.getCategory());
+    var category = rule.getCategory();
+    if (categoryToGroup[category] === undefined) {
+      categoryToGroup[category] = new Group(category);
     }
     categoryToGroup[rule.getCategory()].addTransaction(transaction);
   });
