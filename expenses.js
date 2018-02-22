@@ -63,7 +63,11 @@ function filter(x) {
   return x.replace(/\ +/g, ' ').trim();
 }
 
-function absoluteTotalOfTotals(groups) {
+function sumOfTotals(groups) {
+  return groups.reduce(function(x, y) { return x + y.getTotal(); }, 0);
+}
+
+function sumOfAbsoluteTotals(groups) {
   return groups.reduce(function(x, y) { return x + Math.abs(y.getTotal()); }, 0);
 }
 
@@ -77,7 +81,10 @@ var grouper = new Grouper(function(transaction) {
 
   var heading = createElement('div', 'title');
   heading.appendChild(createDiv('Not Categorised'));
-  heading.appendChild(createDiv(formatAmount(absoluteTotalOfTotals(groups))));
+  var totals = createElement('div');
+  totals.appendChild(createDiv('Total ' + formatAmount(sumOfTotals(groups))));
+  totals.appendChild(createDiv('Abs Total ' + formatAmount(sumOfAbsoluteTotals(groups))));
+  heading.appendChild(totals);
   ungrouped.appendChild(heading);
 
   new ListView(groups, GroupView, ungrouped, false, false);
@@ -89,7 +96,10 @@ var matcher = new Matcher(function(matches, ungroupedTransactions) {
 
   var heading = createElement('div', 'title');
   heading.appendChild(createDiv('Categorised'));
-  heading.appendChild(createDiv(formatAmount(absoluteTotalOfTotals(matches))));
+  var totals = createElement('div');
+  totals.appendChild(createDiv('Total ' + formatAmount(sumOfTotals(matches))));
+  totals.appendChild(createDiv('Abs Total ' + formatAmount(sumOfAbsoluteTotals(matches))));
+  heading.appendChild(totals);
   categories.appendChild(heading);
 
   new ListView(matches, GroupView, categories, false, true);
