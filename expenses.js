@@ -5,6 +5,10 @@
 
 var MIN_SUBSTRING_LENGTH = 8;
 
+function onlyUnique(value, index, self) { 
+  return self.indexOf(value) === index;
+}
+
 function Transaction(date, description, credit, debit) {
   this.date_ = date;
   this.description_ = description;
@@ -367,19 +371,37 @@ Matcher.prototype.setTransactions = function(transactions) {
 };
 
 Matcher.prototype.match = function(rules) {
-  var transactionIdToRule = {};
+  var transactionIdToRules = {};
   rules.forEach(function(rule) {
     this.transactions_.forEach(function(transaction, transactionId) {
       if (!rule.matches(transaction)) {
         return;
       }
-      var existingRule = transactionIdToRule[transactionId];
-      if (existingRule !== undefined && existingRule.getCategory() !== rule.getCategory()) {
-        throw ("Multiple matches: " + transaction.getDescription() + " : " + rule.toString() + " conflicts with " + transactionIdToRule[transactionId].toString());
+      if (transactionIdToRules[transactionId] === undefined) {
+        transactionIdToRules[transactionId] = [];
       }
-      transactionIdToRule[transactionId] = rule;
+      transactionIdToRules[transactionId].push(rule);
     });
   }.bind(this));
+
+  var transactionIdToRule = {};
+  Object.keys(transactionIdToRules).forEach(function(transactionId) {
+    var maxApplicability = transactionIdToRules[transactionId].map(function(rule) {
+      return rule.getApplicability();
+    }).reduce(function(a, b) {
+      return Math.max(a, b);
+    });
+    var mostApplicableRules = transactionIdToRules[transactionId].filter(function(rule) {
+      return rule.getApplicability() === maxApplicability;
+    });
+    var uniqueCategories = mostApplicableRules.map(function(rule) {
+      return rule.getCategory();
+    }).filter(onlyUnique);
+    if (uniqueCategories.length > 1) {
+      throw ("Multiple matches: " + transaction.getDescription() + " : " + mostApplicableRules.join(" "));
+    }
+    transactionIdToRule[transactionId] = mostApplicableRules[0];
+  });
 
   var unmatchedTransactions = [];
   var categoryToGroup = {};
@@ -436,6 +458,10 @@ Rule.prototype.getAmount = function() {
 
 Rule.prototype.getCategory = function() {
   return this.category_;
+}
+
+Rule.prototype.getApplicability = function() {
+  return (this.regex_ !== null) + (this.amount_ !== null);
 }
 
 Rule.DELIM = '|';
